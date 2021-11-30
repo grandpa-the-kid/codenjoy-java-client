@@ -85,6 +85,11 @@ public class YourSolver implements Solver<Board> {
 
     }
 
+    private Direction whereToGo(Point hero, Point destination) {
+        if (1==1);
+        return null;
+    }
+
     public void needAHoleOrNot() {
         noWay.addAll(board.getWalls());
         noWay.addAll(board.getBarriers());
