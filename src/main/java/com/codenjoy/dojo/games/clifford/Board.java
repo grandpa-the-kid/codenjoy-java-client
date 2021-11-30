@@ -174,14 +174,18 @@ public class Board extends AbstractBoard<Element> {
                         "Enemy heroes at: %s\n" +
                         "Robbers at: %s\n" +
                         "Mask potions at: %s\n" +
-                        "Keys at: %s\n",
+                        "Keys at: %s\n" +
+                        "Walls at: %s\n" +
+                        "Ladders at: %s\n",
                 boardAsString(),
                 getHero(),
                 getOtherHeroes(),
                 getEnemyHeroes(),
                 getRobbers(),
                 getPotions(),
-                getKeys());
+                getKeys(),
+                getWalls(),
+                getLadders());
     }
 
 }

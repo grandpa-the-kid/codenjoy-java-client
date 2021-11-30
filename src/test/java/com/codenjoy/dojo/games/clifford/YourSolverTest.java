@@ -87,10 +87,21 @@ public class YourSolverTest {
                 "☼☼☼☼☼☼☼", Direction.RIGHT);
     }
 
+    @Test
+    public void walls( ) {
+
+    }
+
 
     private void asertAI(String board, Direction expected) {
         String actual = ai.get(board(board));
+        System.out.println(board);
+        System.out.println(actual);
         assertEquals(expected.toString(), actual);
+    }
+
+    private void assertWalls(String board) {
+        ai.get(board(board));
     }
 
     private void dice(Direction direction) {

@@ -26,6 +26,11 @@ package com.codenjoy.dojo.games.clifford;
 import com.codenjoy.dojo.client.Solver;
 import com.codenjoy.dojo.services.Dice;
 import com.codenjoy.dojo.services.Direction;
+import com.codenjoy.dojo.services.Point;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Author: your name
@@ -39,9 +44,11 @@ public class YourSolver implements Solver<Board> {
 
     private Dice dice;
     private Board board;
+    private List<Point> noWay;
 
     public YourSolver(Dice dice) {
         this.dice = dice;
+        noWay = new ArrayList<>();
     }
 
     @Override
@@ -50,7 +57,40 @@ public class YourSolver implements Solver<Board> {
         if (board.isGameOver()) return "";
 
         // TODO your code here
+        System.out.println(board);
 
         return Direction.RIGHT.toString();
     }
+
+    public List<List<Element>> getAllElementsPosition(Board board) {
+
+
+        return null;
+    }
+
+    //logic for going to the nearest evidence
+    private void goToNearestEvidence() {
+        List<Point> clues = new ArrayList<>(board.getClues());
+        Collections.sort(clues);
+        Point currentPosition = board.getHero();
+        int distance = 0;
+        Point nearestClue;
+        for (int i=0; i<clues.size();i++) {
+            int tempDistance = (int) Math.hypot(currentPosition.getX() - clues.get(i).getX(), currentPosition.getY() - clues.get(i).getY());
+            if (distance > tempDistance) {
+                nearestClue = clues.get(i);
+                distance = tempDistance;
+            }
+        }
+
+    }
+
+    public void needAHoleOrNot() {
+        noWay.addAll(board.getWalls());
+        noWay.addAll(board.getBarriers());
+    }
+
+
+
+
 }
