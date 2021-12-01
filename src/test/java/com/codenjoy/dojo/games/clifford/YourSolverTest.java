@@ -26,8 +26,12 @@ package com.codenjoy.dojo.games.clifford;
 import com.codenjoy.dojo.client.Solver;
 import com.codenjoy.dojo.services.Dice;
 import com.codenjoy.dojo.services.Direction;
+import com.codenjoy.dojo.services.Point;
+import com.codenjoy.dojo.services.PointImpl;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -38,11 +42,42 @@ public class YourSolverTest {
 
     private Dice dice;
     private Solver ai;
+    // private Board board;
 
     @Before
     public void setup() {
         dice = mock(Dice.class);
         ai = new YourSolver(dice);
+        /*board = (Board) new Board().forString("☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼\n" +
+                "☼   W                $       ☼\n" +
+                "☼##H########################H☼\n" +
+                "☼  H    &      & $          H☼\n" +
+                "☼H☼☼#☼☼H    H#########H»  $ H☼\n" +
+                "☼H    &H    H   &     H#####H☼\n" +
+                "☼H#☼#☼#H WW$H   &   m H  ~~~$☼\n" +
+                "☼H  ~  H~~~~H~~~~~~   H      ☼\n" +
+                "☼H     H    H$@   H###☼☼☼☼☼☼H☼\n" +
+                "☼H   )&H    H#####HU m   @  H☼\n" +
+                "☼☼###☼##☼##☼H         H###H##☼\n" +
+                "☼☼###☼~~~~  Hx&      &H & H##☼\n" +
+                "☼☼   ☼      H   ~~~~~~H   H  ☼\n" +
+                "☼########H###☼☼☼☼&&   H  ####☼\n" +
+                "☼       &H      &    &H      ☼\n" +
+                "☼H##########################H☼\n" +
+                "☼H    $          W@~~~      H☼\n" +
+                "☼#######H#######       x    H☼\n" +
+                "☼       H~~~~~~~~~~        &H☼\n" +
+                "☼       H  FF##H & #######H##☼\n" +
+                "☼   $   H    ##H        $ H  ☼\n" +
+                "☼##H#####    ########H#######☼\n" +
+                "☼  H          @&     H  &  & ☼\n" +
+                "☼#########H##########H       ☼\n" +
+                "☼         H         $H     F ☼\n" +
+                "☼☼☼@      H~~~~~~~~~~H       ☼\n" +
+                "☼    H###### W &     #######H☼\n" +
+                "☼H☼  H      m               H☼\n" +
+                "☼##########☼☼☼######☼☼######H☼\n" +
+                "☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼");*/
     }
 
     private Board board(String board) {
@@ -54,7 +89,7 @@ public class YourSolverTest {
 
         // TODO these asserts are here for an example, delete it and write your own
 
-        asertAI("☼☼☼☼☼☼☼" +
+       /* asertAI("☼☼☼☼☼☼☼" +
                 "☼ $  H☼" +
                 "☼ ###H☼" +
                 "☼    H☼" +
@@ -84,13 +119,109 @@ public class YourSolverTest {
                 "☼    H☼" +
                 "☼   ►H☼" +
                 "☼#####☼" +
-                "☼☼☼☼☼☼☼", Direction.RIGHT);
+                "☼☼☼☼☼☼☼", Direction.RIGHT);*/
+    }
+
+    @Test
+    public void nearestClueTest() {
+        assertNearestClue(
+                "☼☼☼☼☼☼☼" +
+                "☼ $  H☼" +
+                "☼ ###H☼" +
+                "☼    H☼" +
+                "☼   ►H☼" +
+                "☼#####☼" +
+                "☼☼☼☼☼☼☼",2, 5);
+        assertNearestClue(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼    H☼" +
+                        "☼@  ►H☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼",1, 2);
+        assertNearestClue(
+                  "@      " +
+                        "       " +
+                        "       " +
+                        "    $  " +
+                        "       " +
+                        "   U   " +
+                        " &     " +
+                        " ☼     ",0, 1 );
     }
 
     @Test
     public void walls( ) {
+        assertIsWallBelowTest(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼    H☼" +
+                        "☼@  ►H☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 1, 2);
 
+        assertIsWallBelowTest(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@   H☼" +
+                        "☼   ►H☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", false, 1, 3);
+
+        assertYouCanMoveThere(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 1,3 );
+        assertYouCanMoveThere(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 1,2 );
+        assertYouCanMoveThere(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 1,4 );
+        assertYouCanMoveThere(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", false, 5,2 );
+        assertYouCanMakeAHole(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", false, 5,2 );
+        assertYouCanMakeAHole(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 1,1 );
     }
+
+
 
 
     private void asertAI(String board, Direction expected) {
@@ -100,9 +231,48 @@ public class YourSolverTest {
         assertEquals(expected.toString(), actual);
     }
 
-    private void assertWalls(String board) {
-        ai.get(board(board));
+    private void assertNearestClue(String board, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        Point pt = yourSolver.goToNearestEvidence();
+        System.out.println(board(board).isClue(pt));
+        System.out.println(pt.toString());
+        assertEquals(x, pt.getX());
+        assertEquals(y, pt.getY());
+        System.out.println(Arrays.toString(board(board).getField()));
+        for (char[] row:board(board).getField()) {
+            System.out.println(Arrays.toString(row));
+        }
     }
+
+    private void assertIsWallBelowTest(String board, boolean expected, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        Point pt = yourSolver.goToNearestEvidence();
+        Boolean methodResult = yourSolver.isWallBellowClue(pt);
+        assertEquals(expected, methodResult);
+    }
+
+    private void assertIsWallToTheRight(String board, Object expected, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        Point pt = yourSolver.goToNearestEvidence();
+        assertEquals(expected,yourSolver.whereToGo(pt));
+    }
+
+    private void assertYouCanMoveThere(String board, boolean expected, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        assertEquals(expected, yourSolver.canYouMoveThere(new PointImpl(x,y)));
+    }
+
+    private void assertYouCanMakeAHole(String board, boolean expected, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        assertEquals(expected, yourSolver.canYouMakeAHole(new PointImpl(x,y)));
+    }
+
+    private void assertIsItFieldEdge()
 
     private void dice(Direction direction) {
         when(dice.next(anyInt())).thenReturn(direction.value());
