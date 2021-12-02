@@ -66,13 +66,13 @@ public class YourSolver implements Solver<Board> {
         this.board = board;
         if (board.isGameOver()) return "";
 
+        //Надо ли?
+        route.clear();
         // TODO your code here
         System.out.println(board);
         //return whereToGo(board.getHero(),goToNearestEvidence());
 
         return mainLogic();
-        //return Direction.ACT(1)+","+Direction.LEFT;
-        //return Direction.RIGHT.toString();
     }
 
 
@@ -124,12 +124,6 @@ public class YourSolver implements Solver<Board> {
 
     }
 
-    public Point goToNearestEvidence2() {
-        clues = new ArrayList<>(board.getClues());
-        Collections.sort(clues);
-        Point currentPosition = board.getHero();
-        return null;
-    }
 
 
     public String whereToGo(Point destination) {
@@ -158,22 +152,6 @@ public class YourSolver implements Solver<Board> {
         return Direction.ACT(1) + "," + Direction.DOWN.toString();
     }
 
-    private String whereToGo() {
-        String direction = null;
-        int rand = (int) (10 * Math.random());
-        switch (rand) {
-            case 1:
-                return Direction.RIGHT.toString();
-            case 2:
-                return Direction.LEFT.toString();
-            case 3:
-                return Direction.UP.toString();
-            case 4:
-                return Direction.DOWN.toString();
-            default:
-                return Direction.ACT.toString();
-        }
-    }
 
     public boolean isWallBellowClue(Point clue) {
         return (Element.BRICK.equals(board.getAt(clue.getX(), clue.getY() - 1)) || Element.STONE.equals(board.getAt(clue.getX(), clue.getY() - 1)));
@@ -189,10 +167,6 @@ public class YourSolver implements Solver<Board> {
 
     public boolean isItPipeNear(Point point, Direction direction) {
         return point.getX() == board.size() - 1 || (point.getY() == board.size() - 1) || point.getX() == 0 || point.getY() == 0;
-    }
-
-    public void ifGetStuckDeleteClue(Direction direction, Point point) {
-
     }
 
     //only horizontal yet
@@ -253,17 +227,15 @@ public class YourSolver implements Solver<Board> {
             case "&": //glove
             case "@": //ring
                 noneCase(neighbourNodes, x, y);
-                adjacencyMatrix.put(new PointImpl(x,y),neighbourNodes);
+                adjacencyMatrix.put(new PointImpl(x, y), neighbourNodes);
                 break;
             case "H":
                 ladderCase(neighbourNodes, x, y);
-                adjacencyMatrix.put(new PointImpl(x,y),neighbourNodes);
+                adjacencyMatrix.put(new PointImpl(x, y), neighbourNodes);
                 break;
 
         }
     }
-
-
 
 
     //как будем поступать с пустотой
@@ -276,12 +248,12 @@ public class YourSolver implements Solver<Board> {
         //above can't be added
 
         //right
-        point = new PointImpl(x+1, y);
+        point = new PointImpl(x + 1, y);
         if (!noWay.contains(point)) {
             neighbourNodes.add(point);
         }
         //left
-        point = new PointImpl(x-1, y);
+        point = new PointImpl(x - 1, y);
         if (!noWay.contains(point)) {
             neighbourNodes.add(point);
         }
@@ -301,65 +273,103 @@ public class YourSolver implements Solver<Board> {
             neighbourNodes.add(point);
         }
         //right
-        point = new PointImpl(x+1, y);
+        point = new PointImpl(x + 1, y);
         if (!noWay.contains(point)) {
             neighbourNodes.add(point);
         }
         //left
-        point = new PointImpl(x-1, y);
+        point = new PointImpl(x - 1, y);
         if (!noWay.contains(point)) {
             neighbourNodes.add(point);
         }
     }
 
+    //создаем маршрут, после того, как граф наполнен
     public void makeRoute(Point position, Point destination) {
         if (destination.equals(position)) {
             route.add(destination);
             return;
         }
         List<Point> nodeLinkedNodes = adjacencyMatrix.get(position);
-        visitedNodes.add(position);
-        for(Point point : nodeLinkedNodes) {
-            if(!visitedNodes.contains(point)) {
-                makeRoute(point,destination);
+        for (Point point : nodeLinkedNodes) {
+            if (!visitedNodes.contains(point)) {
+                visitedNodes.add(point);
+                makeRoute(point, destination);
+                if (route.contains(destination)) {
+                    if (route.contains(position)) {
+                        route.remove(position);
+                        return;
+                    }
+                    if (!destination.equals(point)) {
+                        route.add(0, point);
+                    }
+
+                    break;
+                }
             } else {
                 route.clear();
             }
         }
+        //route.add(position);
     }
 
-    public String goByRoute(){
-        for (int i = 0; i < route.size(); i++) {
-            Point A = route.get(i);
-            Point B;
-
-            try {
-                B = route.get(i + 1);
-            } catch (IndexOutOfBoundsException e) {
-                return Direction.STOP.toString();
-            }
-
-            if(A.getX() - B.getX() != 0) {
-                if (A.getX() - B.getX() > 0) {
-                    return Direction.LEFT.toString();
+    //идём по маршруту
+    public List<Direction> goByRoute() {
+        List<Direction> test = new ArrayList<>();
+        boolean loop = true;
+        while (loop) {
+            for (int i = 0; i < route.size(); i++) {
+                Point A = new PointImpl();
+                Point B = new PointImpl();
+                if (i == 0) {
+                    A = board.getHero();
+                    B = route.get(i);
                 } else {
-                    return Direction.RIGHT.toString();
+                    A = route.get(i - 1);
+                    try {
+                        B = route.get(i);
+                    } catch (IndexOutOfBoundsException e) {
+                        loop = false;
+                        //return Direction.STOP.toString();
+                    }
                 }
-            }
 
-            if(A.getY() - B.getY() != 0) {
-                if (A.getY() - B.getY() > 0) {
-                    return Direction.DOWN.toString();
-                } else {
-                    return Direction.UP.toString();
+                if (A.getX() - B.getX() != 0) {
+                    if (A.getX() - B.getX() > 0) {
+                        test.add(Direction.LEFT);
+                        //return Direction.LEFT.toString();
+                    } else {
+                        test.add(Direction.RIGHT);
+                        //return Direction.RIGHT.toString();
+                    }
                 }
-            }
 
+                if (A.getY() - B.getY() != 0) {
+                    if (A.getY() - B.getY() > 0) {
+                        test.add(Direction.DOWN);
+                        //return Direction.DOWN.toString();
+                    } else {
+                        test.add(Direction.UP);
+                        //return Direction.UP.toString();
+                    }
+                }
+
+            }
+            loop = false;
         }
-        return Direction.STOP.toString();
+        return test;
+        //return Direction.STOP.toString();
     }
 
+    //тут вся логика, отсюда отправляемся
     public String mainLogic() {
+        fillAdjacencyMatrix();
+        makeRoute(board.getHero(), goToNearestEvidence());
+        //return goByRoute();
+        return "";
+    }
+
+    public List<Direction> mainLogicTest() {
         fillAdjacencyMatrix();
         makeRoute(board.getHero(), goToNearestEvidence());
         return goByRoute();

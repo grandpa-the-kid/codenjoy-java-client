@@ -269,14 +269,45 @@ public class YourSolverTest {
                             "☼#####☼" +
                             "☼☼☼☼☼☼☼", adjacencyMatrix);
 
-        assertGraphFilling(
+        List<Direction> directions1 = new ArrayList<>(List.of(Direction.LEFT, Direction.LEFT, Direction.UP));
+        assertRouteMaking(
+                "☼☼☼☼☼☼☼" +
+                        "☼☼☼☼☼☼☼" +
+                        "☼☼☼☼☼☼☼" +
+                        "☼$☼☼☼☼☼" +
+                        "☼H ►  ☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", directions1);
+
+        List<Direction> directions2 = new ArrayList<>(List.of(Direction.RIGHT, Direction.RIGHT));
+        assertRouteMaking(
                 "☼☼☼☼☼☼☼" +
                 "☼☼☼☼☼☼☼" +
                 "☼☼☼☼☼☼☼" +
                 "☼☼☼☼☼☼☼" +
                 "☼H ► $☼" +
                 "☼#####☼" +
-                "☼☼☼☼☼☼☼", adjacencyMatrix);
+                "☼☼☼☼☼☼☼", directions2);
+
+        List<Direction> directions3 = new ArrayList<>(List.of(Direction.LEFT, Direction.LEFT, Direction.UP,Direction.UP,Direction.RIGHT, Direction.RIGHT, Direction.RIGHT, Direction.RIGHT));
+        assertRouteMaking(
+                "☼☼☼☼☼☼☼" +
+                        "☼☼☼☼☼☼☼" +
+                        "☼H~~~$☼" +
+                        "☼H☼☼☼☼☼" +
+                        "☼H ►  ☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", directions3);
+
+        List<Direction> directions4 = new ArrayList<>(List.of(Direction.LEFT, Direction.LEFT, Direction.UP,Direction.UP,Direction.RIGHT, Direction.RIGHT, Direction.RIGHT, Direction.RIGHT));
+        assertRouteMaking(
+                "☼☼☼☼☼☼☼" +
+                        "☼☼☼☼☼☼☼" +
+                        "☼H~~~$☼" +
+                        "☼H☼☼☼ ☼" +
+                        "☼H ►  ☼" +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", directions4);
     }
 
     private void assertGraphFilling(String board, Map<Point, List<Point>> expected) {
@@ -286,10 +317,10 @@ public class YourSolverTest {
         assertEquals(expected, yourSolver.adjacencyMatrix);
     }
 
-    private void assertRouteMaking (String board, Map<Point, List<Point>> expected) {
+    private void assertRouteMaking (String board, List<Direction> expected) {
         YourSolver yourSolver = new YourSolver(dice);
         yourSolver.setBoard(board(board));
-        yourSolver.fillAdjacencyMatrix();
+        assertEquals(expected, yourSolver.mainLogicTest());
     }
 
 
