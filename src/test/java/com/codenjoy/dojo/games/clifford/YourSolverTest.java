@@ -31,7 +31,7 @@ import com.codenjoy.dojo.services.PointImpl;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -221,7 +221,76 @@ public class YourSolverTest {
                         "☼☼☼☼☼☼☼", true, 1,1 );
     }
 
+    @Test
+    public void edges() {
+        assertIsItFieldEdge(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", false, 1,1 );
 
+        assertIsItFieldEdge(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 0,1 );
+        assertIsItFieldEdge(
+                "☼☼☼☼☼☼☼" +
+                        "☼ $  H☼" +
+                        "☼ ###H☼" +
+                        "☼@    ☼" +
+                        "☼  ► ☼ " +
+                        "☼#####☼" +
+                        "☼☼☼☼☼☼☼", true, 6,6 );
+
+
+    }
+
+    @Test
+    public void graphFilling() {
+        Map<Point, List<Point>> adjacencyMatrix = new HashMap<>();
+        adjacencyMatrix.put(new PointImpl(1,2), new ArrayList<>(List.of(/*new PointImpl(1,3),*/ new PointImpl(2,2))));
+        adjacencyMatrix.put(new PointImpl(2,2), new ArrayList<>(List.of(new PointImpl(3, 2),new PointImpl(1,2))));
+        adjacencyMatrix.put(new PointImpl(3,2), new ArrayList<>(List.of(new PointImpl(4,2), new PointImpl(2,2))));
+        adjacencyMatrix.put(new PointImpl(4,2), new ArrayList<>(List.of(new PointImpl(5,2), new PointImpl(3,2))));
+        adjacencyMatrix.put(new PointImpl(5,2), new ArrayList<>(List.of(new PointImpl(4,2))));
+
+        assertGraphFilling("☼☼☼☼☼☼☼" +
+                            "☼☼☼☼☼☼☼" +
+                            "☼☼☼☼☼☼☼" +
+                            "☼☼☼☼☼☼☼" +
+                            "☼H ► $☼" +
+                            "☼#####☼" +
+                            "☼☼☼☼☼☼☼", adjacencyMatrix);
+
+        assertGraphFilling(
+                "☼☼☼☼☼☼☼" +
+                "☼☼☼☼☼☼☼" +
+                "☼☼☼☼☼☼☼" +
+                "☼☼☼☼☼☼☼" +
+                "☼H ► $☼" +
+                "☼#####☼" +
+                "☼☼☼☼☼☼☼", adjacencyMatrix);
+    }
+
+    private void assertGraphFilling(String board, Map<Point, List<Point>> expected) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        yourSolver.fillAdjacencyMatrix();
+        assertEquals(expected, yourSolver.adjacencyMatrix);
+    }
+
+    private void assertRouteMaking (String board, Map<Point, List<Point>> expected) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        yourSolver.fillAdjacencyMatrix();
+    }
 
 
     private void asertAI(String board, Direction expected) {
@@ -272,7 +341,17 @@ public class YourSolverTest {
         assertEquals(expected, yourSolver.canYouMakeAHole(new PointImpl(x,y)));
     }
 
-    private void assertIsItFieldEdge()
+    private void assertIsItFieldEdge(String board, boolean expected, int x, int y) {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.setBoard(board(board));
+        System.out.println(board(board).getNear(3,3));
+        assertEquals(expected, yourSolver.isItFieldEdge(new PointImpl(x,y)));
+    }
+
+    private void assertNodeAdd() {
+        YourSolver yourSolver = new YourSolver(dice);
+        yourSolver.nodeAdd(Element.NONE, 1,1);
+    }
 
     private void dice(Direction direction) {
         when(dice.next(anyInt())).thenReturn(direction.value());

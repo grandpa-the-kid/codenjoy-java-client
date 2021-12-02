@@ -60,6 +60,14 @@ public enum Direction {
         throw new IllegalArgumentException("No such Direction for: " + index);
     }
 
+    public int getDx() {
+        return dx;
+    }
+
+    public int getDy() {
+        return dy;
+    }
+
     /**
      * @param string any string
      * @return true if this is valid direction -

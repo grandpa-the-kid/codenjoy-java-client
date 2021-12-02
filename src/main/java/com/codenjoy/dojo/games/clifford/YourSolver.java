@@ -29,10 +29,7 @@ import com.codenjoy.dojo.services.Direction;
 import com.codenjoy.dojo.services.Point;
 import com.codenjoy.dojo.services.PointImpl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Author: your name
@@ -47,10 +44,17 @@ public class YourSolver implements Solver<Board> {
     private Dice dice;
     private Board board;
     private List<Point> noWay;
+    private List<Point> clues;
+    public Map<Point, List<Point>> adjacencyMatrix;
+    private List<Point> route;
+    private Set<Point> visitedNodes;
 
     public YourSolver(Dice dice) {
         this.dice = dice;
         noWay = new ArrayList<>();
+        adjacencyMatrix = new HashMap<>();
+        route = new ArrayList<>();
+        visitedNodes = new HashSet<>();
     }
 
     public void setBoard(Board board) {
@@ -66,8 +70,8 @@ public class YourSolver implements Solver<Board> {
         System.out.println(board);
         //return whereToGo(board.getHero(),goToNearestEvidence());
 
-        return whereToGo(goToNearestEvidence());
-
+        return mainLogic();
+        //return Direction.ACT(1)+","+Direction.LEFT;
         //return Direction.RIGHT.toString();
     }
 
@@ -99,7 +103,8 @@ public class YourSolver implements Solver<Board> {
     // TODO: 01.12.2021 добавить поиск по конкретным уликам (чтобы можно было подобрать серии - вроде так больше очков) 
     //logic for going to the nearest evidence
     public Point goToNearestEvidence() {
-        List<Point> clues = new ArrayList<>(board.getClues());
+        clues = new ArrayList<>(board.getClues());
+        clues.addAll(board.getPotions());
         Collections.sort(clues);
         Point currentPosition = board.getHero();
         int distance = 43; //max distance. Math.hypot(N, N);
@@ -117,6 +122,13 @@ public class YourSolver implements Solver<Board> {
         }
         return nearestClue;
 
+    }
+
+    public Point goToNearestEvidence2() {
+        clues = new ArrayList<>(board.getClues());
+        Collections.sort(clues);
+        Point currentPosition = board.getHero();
+        return null;
     }
 
 
@@ -175,6 +187,14 @@ public class YourSolver implements Solver<Board> {
         return point.getX() == board.size() - 1 || (point.getY() == board.size() - 1) || point.getX() == 0 || point.getY() == 0;
     }
 
+    public boolean isItPipeNear(Point point, Direction direction) {
+        return point.getX() == board.size() - 1 || (point.getY() == board.size() - 1) || point.getX() == 0 || point.getY() == 0;
+    }
+
+    public void ifGetStuckDeleteClue(Direction direction, Point point) {
+
+    }
+
     //only horizontal yet
     public String atack() {
         for (int i = -2; i < 3; i++) {
@@ -184,16 +204,164 @@ public class YourSolver implements Solver<Board> {
             if (board.getHero().getX() + i < 0 || board.getHero().getX() + i > board.size()) {
                 break;
             }
-            if (board.isRobberAt(new PointImpl(board.getHero().getX() + i, board.getHero().getY()))) {
+            if (board.isOtherHeroAt(new PointImpl(board.getHero().getX() + i, board.getHero().getY()))) {
                 if (i > 0) {
-                    return String.format("%s,%s", Direction.ACT, Direction.RIGHT);
+                    return String.format("%s,%s", Direction.ACT(1), Direction.RIGHT);
                 } else {
-                    return String.format("%s,%s", Direction.ACT, Direction.LEFT);
+                    return String.format("%s,%s", Direction.ACT(1), Direction.LEFT);
                 }
             }
         }
         return Direction.STOP.toString();
     }
 
+    //наполняю граф (таблицу смежности)
+    public void fillAdjacencyMatrix() {
+        noWay = new ArrayList<>(board.getWalls());
+        for (int y = 0; y < board.size(); y++) {
+            for (int x = 0; x < board.size(); x++) {
+                if (noWay.contains(new PointImpl(x, y))) {
+                    continue;
+                }
+                Element currentElement = board.getAt(x, y);
+                nodeAdd(currentElement, x, y);
+            }
 
+        }
+    }
+
+    //здесь добавляю узлы в которые можно попасть из переданного
+    public void nodeAdd(Element currentElement, int x, int y) {
+        List<Point> neighbourNodes = new ArrayList<>();
+        switch (currentElement.toString()) {
+            case " ": //empty place
+            case "~": //pipe
+            case "C": //other hero Die
+            case "D": //other hero ladder
+            case "«": //other hero Left
+            case "»": //other hero right
+            case "F": //other hero fall
+            case "J": //other hero pipe
+            case "W": //back way door
+            case "O": //hero die
+            case "A": //hero ladder
+            case "◄": //hero left
+            case "►": //hero right
+            case "U": //hero fall
+            case "I": //hero pipe
+            case "$": //knife
+            case "&": //glove
+            case "@": //ring
+                noneCase(neighbourNodes, x, y);
+                adjacencyMatrix.put(new PointImpl(x,y),neighbourNodes);
+                break;
+            case "H":
+                ladderCase(neighbourNodes, x, y);
+                adjacencyMatrix.put(new PointImpl(x,y),neighbourNodes);
+                break;
+
+        }
+    }
+
+
+
+
+    //как будем поступать с пустотой
+    private void noneCase(List<Point> neighbourNodes, int x, int y) {
+        //below
+        Point point = new PointImpl(x, y - 1);
+        if (!noWay.contains(point)) { //проверка на то, что это не стена
+            neighbourNodes.add(point);
+        }
+        //above can't be added
+
+        //right
+        point = new PointImpl(x+1, y);
+        if (!noWay.contains(point)) {
+            neighbourNodes.add(point);
+        }
+        //left
+        point = new PointImpl(x-1, y);
+        if (!noWay.contains(point)) {
+            neighbourNodes.add(point);
+        }
+
+    }
+
+    //с лестницами
+    private void ladderCase(List<Point> neighbourNodes, int x, int y) {
+        //below
+        Point point = new PointImpl(x, y - 1);
+        if (!noWay.contains(point)) { //проверка на то, что это не стена
+            neighbourNodes.add(point);
+        }
+        //above
+        point = new PointImpl(x, y + 1);
+        if (!noWay.contains(point)) { //проверка на то, что это не стена, вверх можно куда угодно
+            neighbourNodes.add(point);
+        }
+        //right
+        point = new PointImpl(x+1, y);
+        if (!noWay.contains(point)) {
+            neighbourNodes.add(point);
+        }
+        //left
+        point = new PointImpl(x-1, y);
+        if (!noWay.contains(point)) {
+            neighbourNodes.add(point);
+        }
+    }
+
+    public void makeRoute(Point position, Point destination) {
+        if (destination.equals(position)) {
+            route.add(destination);
+            return;
+        }
+        List<Point> nodeLinkedNodes = adjacencyMatrix.get(position);
+        visitedNodes.add(position);
+        for(Point point : nodeLinkedNodes) {
+            if(!visitedNodes.contains(point)) {
+                makeRoute(point,destination);
+            } else {
+                route.clear();
+            }
+        }
+    }
+
+    public String goByRoute(){
+        for (int i = 0; i < route.size(); i++) {
+            Point A = route.get(i);
+            Point B;
+
+            try {
+                B = route.get(i + 1);
+            } catch (IndexOutOfBoundsException e) {
+                return Direction.STOP.toString();
+            }
+
+            if(A.getX() - B.getX() != 0) {
+                if (A.getX() - B.getX() > 0) {
+                    return Direction.LEFT.toString();
+                } else {
+                    return Direction.RIGHT.toString();
+                }
+            }
+
+            if(A.getY() - B.getY() != 0) {
+                if (A.getY() - B.getY() > 0) {
+                    return Direction.DOWN.toString();
+                } else {
+                    return Direction.UP.toString();
+                }
+            }
+
+        }
+        return Direction.STOP.toString();
+    }
+
+    public String mainLogic() {
+        fillAdjacencyMatrix();
+        makeRoute(board.getHero(), goToNearestEvidence());
+        return goByRoute();
+    }
 }
