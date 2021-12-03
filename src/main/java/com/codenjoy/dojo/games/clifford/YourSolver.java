@@ -46,8 +46,9 @@ public class YourSolver implements Solver<Board> {
     private List<Point> noWay;
     private List<Point> clues;
     public Map<Point, List<Point>> adjacencyMatrix;
-    private List<Point> route;
+    public List<Point> route;
     private Set<Point> visitedNodes;
+    private Point nearestEvidence;
 
     public YourSolver(Dice dice) {
         this.dice = dice;
@@ -61,18 +62,35 @@ public class YourSolver implements Solver<Board> {
         this.board = board;
     }
 
+    public List<Point> getRoute() {
+        return route;
+    }
+
     @Override
     public String get(Board board) {
         this.board = board;
-        if (board.isGameOver()) return "";
+        if (board.isGameOver()) {
+            return "";
+        }
+
+        route = new ArrayList<>();
+        try {
+            if (!board.isClue(nearestEvidence)) {
+                nearestEvidence = goToNearestEvidence();
+            }
+        } catch (NullPointerException e) {
+            nearestEvidence = goToNearestEvidence();
+        }
+        visitedNodes.clear();
 
         //Надо ли?
-        route.clear();
+        //route.clear();
         // TODO your code here
-        System.out.println(board);
+        //System.out.println(board);
         //return whereToGo(board.getHero(),goToNearestEvidence());
 
         return mainLogic();
+
     }
 
 
@@ -103,10 +121,22 @@ public class YourSolver implements Solver<Board> {
     // TODO: 01.12.2021 добавить поиск по конкретным уликам (чтобы можно было подобрать серии - вроде так больше очков) 
     //logic for going to the nearest evidence
     public Point goToNearestEvidence() {
+        System.out.println("looking for nearest evidence");
         clues = new ArrayList<>(board.getClues());
         clues.addAll(board.getPotions());
         Collections.sort(clues);
         Point currentPosition = board.getHero();
+        for (int x = -28; x < board.size(); x++) {
+            try {
+                if (board.isClue(new PointImpl(currentPosition.getX() + x, currentPosition.getY()))) {
+                    return new PointImpl(currentPosition.getX() + x, currentPosition.getY());
+                }
+            } catch (IndexOutOfBoundsException e) {
+                continue;
+            }
+        }
+
+
         int distance = 43; //max distance. Math.hypot(N, N);
         Point nearestClue = new ArrayList<>(board.getClues()).get(0);
         for (int i = 0; i < clues.size(); i++) {
@@ -122,34 +152,6 @@ public class YourSolver implements Solver<Board> {
         }
         return nearestClue;
 
-    }
-
-
-
-    public String whereToGo(Point destination) {
-        atack();
-        if (board.getHero().getX() < destination.getX()) {
-            if (!board.isWall(new PointImpl(board.getHero().getX() + 1, board.getHero().getY()))) {
-                return Direction.RIGHT.toString();
-            }
-        } else if (board.getHero().getX() > destination.getX()) {
-            if (!board.isWall(new PointImpl(board.getHero().getX() - 1, board.getHero().getY()))) {
-                return Direction.LEFT.toString();
-            }
-        } else {
-            if (!board.isWall(new PointImpl(board.getHero().getX() + 1, board.getHero().getY() - 1))) {
-                return Direction.RIGHT.toString();
-            } else if (!board.isWall(new PointImpl(board.getHero().getX() - 1, board.getHero().getY() - 1))) {
-                return Direction.LEFT.toString();
-            }
-        }
-
-        if (board.isWall(new PointImpl(board.getHero().getX() + 1, board.getHero().getY()))) {
-            return Direction.LEFT.toString();
-        } else if (board.isWall(new PointImpl(board.getHero().getX() - 1, board.getHero().getY()))) {
-            return Direction.RIGHT.toString();
-        }
-        return Direction.ACT(1) + "," + Direction.DOWN.toString();
     }
 
 
@@ -171,20 +173,34 @@ public class YourSolver implements Solver<Board> {
 
     //only horizontal yet
     public String atack() {
-        for (int i = -2; i < 3; i++) {
-            if (i == 0) {
-                i++;
-            }
-            if (board.getHero().getX() + i < 0 || board.getHero().getX() + i > board.size()) {
-                break;
-            }
-            if (board.isOtherHeroAt(new PointImpl(board.getHero().getX() + i, board.getHero().getY()))) {
-                if (i > 0) {
+        Point currentHeroPosition = board.getHero();
+        List<Point> otherHeroes = new ArrayList<>(board.getOtherHeroes());
+        for (Point otherHero : otherHeroes) {
+            if (currentHeroPosition.getY() == otherHero.getY()) {
+                if (currentHeroPosition.getX() - otherHero.getY() > 0) {
                     return String.format("%s,%s", Direction.ACT(1), Direction.RIGHT);
-                } else {
-                    return String.format("%s,%s", Direction.ACT(1), Direction.LEFT);
                 }
             }
+        }
+
+        try {
+            for (int i = -2; i < 3; i++) {
+                if (i == 0) {
+                    i++;
+                }
+                if (board.getHero().getX() + i < 0 || board.getHero().getX() + i > board.size()) {
+                    break;
+                }
+                if (board.isOtherHeroAt(new PointImpl(board.getHero().getX() + i, board.getHero().getY()))) {
+                    if (i > 0) {
+                        return String.format("%s,%s", Direction.ACT(1), Direction.RIGHT);
+                    } else {
+                        return String.format("%s,%s", Direction.ACT(1), Direction.LEFT);
+                    }
+                }
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println(e);
         }
         return Direction.STOP.toString();
     }
@@ -202,6 +218,7 @@ public class YourSolver implements Solver<Board> {
             }
 
         }
+        System.out.println("filling adjacency Matrix");
     }
 
     //здесь добавляю узлы в которые можно попасть из переданного
@@ -209,27 +226,64 @@ public class YourSolver implements Solver<Board> {
         List<Point> neighbourNodes = new ArrayList<>();
         switch (currentElement.toString()) {
             case " ": //empty place
-            case "~": //pipe
-            case "C": //other hero Die
-            case "D": //other hero ladder
-            case "«": //other hero Left
-            case "»": //other hero right
             case "F": //other hero fall
-            case "J": //other hero pipe
-            case "W": //back way door
-            case "O": //hero die
-            case "A": //hero ladder
-            case "◄": //hero left
-            case "►": //hero right
+            case "f": //other hero mask fall
             case "U": //hero fall
-            case "I": //hero pipe
-            case "$": //knife
-            case "&": //glove
-            case "@": //ring
+            case "u": //hero mask fall
+            case "x": //robber fall
                 noneCase(neighbourNodes, x, y);
                 adjacencyMatrix.put(new PointImpl(x, y), neighbourNodes);
                 break;
-            case "H":
+
+            case "W": //back way door
+
+            case "~": //pipe
+
+            case "C": //other hero Die
+            case "«": //other hero Left
+            case "»": //other hero right
+            case "J": //other hero pipe
+            case "K": //other hero pit
+
+            case "c": //other hero mask die
+            case "Z": //other hero mask left
+            case "z": //other hero mask right
+            case "j": //other hero mask pipe
+            case "k": //other hero mask pit
+
+            case "O": //hero die
+            case "◄": //hero left
+            case "►": //hero right
+            case "I": //hero pipe
+            case "E": //hero pit
+
+            case "o": //hero mask die
+            case "h": //hero mask left
+            case "w": //hero mask right
+            case "i": //hero mask pipe
+            case "e": //hero mask pit
+
+            case "$": //knife
+            case "&": //glove
+            case "@": //ring
+            case "m": //mask potion
+
+            case ")": //robber left
+            case "(": //robber right
+            case "Y": //robber pipe
+
+                otherCase(neighbourNodes, x, y);
+                adjacencyMatrix.put(new PointImpl(x, y), neighbourNodes);
+                break;
+
+            case "H": //ladder
+            case "D": //other hero ladder
+            case "A": //hero ladder
+            case "X": //robber ladder
+            case "a": //hero mask ladder
+            case "d": //other hero mask ladder
+            case "N": //enemy hero ladder
+            case "n": //enemy hero mask ladder
                 ladderCase(neighbourNodes, x, y);
                 adjacencyMatrix.put(new PointImpl(x, y), neighbourNodes);
                 break;
@@ -238,11 +292,12 @@ public class YourSolver implements Solver<Board> {
     }
 
 
-    //как будем поступать с пустотой
-    private void noneCase(List<Point> neighbourNodes, int x, int y) {
+    //как будем поступать с остальным
+    // TODO проблема в том, что добавляю в этих методах несуществующие точки
+    private void otherCase(List<Point> neighbourNodes, int x, int y) {
         //below
         Point point = new PointImpl(x, y - 1);
-        if (!noWay.contains(point)) { //проверка на то, что это не стена
+        if (!noWay.contains(point) && board.size()) { //проверка на то, что это не стена
             neighbourNodes.add(point);
         }
         //above can't be added
@@ -256,6 +311,38 @@ public class YourSolver implements Solver<Board> {
         point = new PointImpl(x - 1, y);
         if (!noWay.contains(point)) {
             neighbourNodes.add(point);
+        }
+
+    }
+
+    //как будем поступать с пустотой
+    private void noneCase(List<Point> neighbourNodes, int x, int y) {
+        //below
+        Point point = new PointImpl(x, y - 1);
+        if (!noWay.contains(point)) { //проверка на то, что это не стена
+            neighbourNodes.add(point);
+        }
+        //above can't be added
+        //тут если под пустотой пустота, то только вниз можно (и если труба, то тоже, только вниз)
+        if (board.getAt(point).equals(Element.NONE) || board.getAt(point).equals(Element.HERO_FALL) ||
+                board.getAt(point).equals(Element.OTHER_HERO_FALL) || board.getAt(point).equals(Element.HERO_MASK_FALL) ||
+                board.getAt(point).equals(Element.ROBBER_FALL) || board.getAt(point).equals(Element.HERO_PIPE) ||
+                board.getAt(point).equals(Element.HERO_MASK_PIPE) || board.getAt(point).equals(Element.OTHER_HERO_PIPE) ||
+                board.getAt(point).equals(Element.OTHER_HERO_MASK_PIPE) || board.getAt(point).equals(Element.ENEMY_HERO_PIPE) ||
+                board.getAt(point).equals(Element.ENEMY_HERO_MASK_PIPE) || board.getAt(point).equals(Element.ROBBER_PIPE) ||
+                board.getAt(point).equals(Element.PIPE)) {
+            return;
+        } else {
+            //right
+            point = new PointImpl(x + 1, y);
+            if (!noWay.contains(point)) {
+                neighbourNodes.add(point);
+            }
+            //left
+            point = new PointImpl(x - 1, y);
+            if (!noWay.contains(point)) {
+                neighbourNodes.add(point);
+            }
         }
 
     }
@@ -290,9 +377,12 @@ public class YourSolver implements Solver<Board> {
             route.add(destination);
             return;
         }
+
         List<Point> nodeLinkedNodes = adjacencyMatrix.get(position);
+        System.out.println("making route");
+        //Collections.sort(nodeLinkedNodes);
         for (Point point : nodeLinkedNodes) {
-            if (!visitedNodes.contains(point)) {
+            if (!visitedNodes.contains(point) && !board.getHero().equals(point)) {
                 visitedNodes.add(point);
                 makeRoute(point, destination);
                 if (route.contains(destination)) {
@@ -314,7 +404,7 @@ public class YourSolver implements Solver<Board> {
     }
 
     //идём по маршруту
-    public List<Direction> goByRoute() {
+    public List<Direction> goByRouteTest() {
         List<Direction> test = new ArrayList<>();
         boolean loop = true;
         while (loop) {
@@ -361,17 +451,69 @@ public class YourSolver implements Solver<Board> {
         //return Direction.STOP.toString();
     }
 
+    public String goByRoute() {
+        List<Direction> test = new ArrayList<>();
+        atack();
+        /*while (loop) {*/
+        for (int i = 0; i < route.size(); i++) {
+            Point A = new PointImpl();
+            Point B = new PointImpl();
+            if (i == 0) {
+                A = board.getHero();
+                B = route.get(i);
+                //route.remove(i);
+            } else {
+                A = route.get(i - 1);
+                try {
+                    B = route.get(i);
+                } catch (IndexOutOfBoundsException e) {
+                    //loop = false;
+                    if (route.isEmpty()) {
+                        nearestEvidence = null;
+                    }
+
+                    return Direction.STOP.toString();
+                }
+            }
+            route.remove(i);
+            if (A.getX() - B.getX() != 0) {
+                if (A.getX() - B.getX() > 0) {
+                    test.add(Direction.LEFT);
+                    return Direction.LEFT.toString();
+                } else {
+                    test.add(Direction.RIGHT);
+                    return Direction.RIGHT.toString();
+                }
+            }
+
+            if (A.getY() - B.getY() != 0) {
+                if (A.getY() - B.getY() > 0) {
+                    test.add(Direction.DOWN);
+                    return Direction.DOWN.toString();
+                } else {
+                    test.add(Direction.UP);
+                    return Direction.UP.toString();
+                }
+            }
+
+            /*}
+            loop = false;*/
+        }
+        return Direction.STOP.toString();
+    }
+
     //тут вся логика, отсюда отправляемся
     public String mainLogic() {
         fillAdjacencyMatrix();
-        makeRoute(board.getHero(), goToNearestEvidence());
-        //return goByRoute();
-        return "";
+
+        makeRoute(board.getHero(), nearestEvidence);
+        System.out.println(route);
+        return goByRoute();
     }
 
     public List<Direction> mainLogicTest() {
         fillAdjacencyMatrix();
-        makeRoute(board.getHero(), goToNearestEvidence());
-        return goByRoute();
+
+        return goByRouteTest();
     }
 }
